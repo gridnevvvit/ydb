@@ -212,9 +212,10 @@ public:
 
         with_lock (Lock) {
             if (Y_UNLIKELY(!ResourceBroker)) {
-                LOG_AS_E("AllocateResources: not ready yet. TxId: " << txId << ", taskId: " << taskId);
+                TStringBuilder reason;
+                reason << "AllocateResources: not ready yet. TxId: " << txId << ", taskId: " << taskId;
                 if (details) {
-                    details->SetNotReady();
+                    details->FailReason = reason;
                 }
                 return false;
             }
@@ -228,10 +229,13 @@ public:
 
         if (!hasScanQueryMemory) {
             Counters->RmNotEnoughMemory->Inc();
-            LOG_AS_N("TxId: " << txId << ", taskId: " << taskId << ". Not enough ScanQueryMemory, requested: " << resources.Memory);
+            TStringBuilder reason;
+            reason <<  "TxId: " << txId << ", NodeId: " << SelfId.NodeId() << ", not enough memory, requested " << resources.Memory;
             if (details) {
-                details->SetScanQueryMemory();
+                details->FailReason = reason;
+                details->Status = NKikimrKqp::TEvStartKqpTasksResponse::NOT_ENOUGH_MEMORY;
             }
+    
             return false;
         }
 
@@ -242,6 +246,7 @@ public:
         auto& txBucket = TxBucket(txId);
         with_lock (txBucket.Lock) {
             if (auto it = txBucket.Txs.find(txId); it != txBucket.Txs.end()) {
+                ui64 txTotalRequestedMemory = it->second.TxScanQueryMemory + resources.Memory;
                 if (it->second.TxScanQueryMemory + resources.Memory > queryMemoryLimit) {
                     auto unguard = ::Unguard(txBucket.Lock);
 
@@ -250,11 +255,16 @@ public:
                     } // with_lock (Lock)
 
                     Counters->RmNotEnoughMemory->Inc();
-                    LOG_AS_N("TxId: " << txId << ", taskId: " << taskId << ". Query memory limit exceeded: "
-                        << "requested " << (it->second.TxScanQueryMemory + resources.Memory));
+                    TStringBuilder reason;
+                    reason << "TxId: " << txId << ", NodeId: " << SelfId.NodeId()
+                        << ", query memory limit exceeded, requested: " << txTotalRequestedMemory;
+                    LOG_AS_N(reason);
+
                     if (details) {
-                        details->SetQueryMemoryLimit();
+                        details->FailReason = reason;
+                        details->Status = NKikimrKqp::TEvStartKqpTasksResponse::QUERY_MEMORY_LIMIT_EXCEEDED;
                     }
+
                     return false;
                 }
             }
@@ -271,10 +281,12 @@ public:
                 } // with_lock (Lock)
 
                 Counters->RmNotEnoughMemory->Inc();
-                LOG_AS_N("TxId: " << txId << ", taskId: " << taskId << ". Not enough ScanQueryMemory: "
-                    << "requested " << resources.Memory);
+                TStringBuilder reason;
+                reason <<  "TxId: " << txId << ", NodeId: " << SelfId.NodeId() << ", not enough memory, requested " << resources.Memory;
+                LOG_AS_N(reason);
                 if (details) {
-                    details->SetScanQueryMemory();
+                    details->Status = NKikimrKqp::TEvStartKqpTasksResponse::NOT_ENOUGH_MEMORY;
+                    details->FailReason = reason;
                 }
                 return false;
             }
