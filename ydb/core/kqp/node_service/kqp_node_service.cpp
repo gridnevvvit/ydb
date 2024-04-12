@@ -52,18 +52,18 @@ TString TasksIdsStr(const TTasksCollection& tasks) {
     return TStringBuilder() << "[" << JoinSeq(", ", ids) << "]";
 }
 
-constexpr ui64 BucketsCount = 64;
-using TBucketArray = std::array<NKqpNode::TState, BucketsCount>;
+constexpr ui64 BucketsMask = 63;
+using TBucketArray = std::array<NKqpNode::TState, BucketsMask + 1>;
 
 NKqpNode::TState& GetStateBucketByTx(std::shared_ptr<TBucketArray> buckets, ui64 txId) {
-    return (*buckets)[txId % buckets->size()];
+    return (*buckets)[txId & BucketsMask];
 }
 
 void FinishKqpTask(ui64 txId, ui64 taskId, bool success, NKqpNode::TState& bucket, std::shared_ptr<NRm::IKqpResourceManager> ResourceManager) {
-    auto ctx = bucket.RemoveTask(txId, taskId, success);
-    if (ctx) {
+    auto leftComputeActors = bucket.RemoveTask(txId, taskId, success);
+    if (leftComputeActors.has_value()) {
         ResourceManager->FreeExecutionUnits(1);
-        if (ctx->ComputeActorsNumber == 0) {
+        if (*leftComputeActors == 0) {
             ResourceManager->FreeResources(txId);
         } else {
             ResourceManager->FreeResources(txId, taskId);
@@ -336,11 +336,10 @@ private:
             LOG_D("TxId: " << txId << ", task: " << taskCtx.TaskId << ", requested memory: " << taskCtx.Memory);
 
             requestChannels += estimation.ChannelBuffersCount;
-            request.TotalMemory += taskCtx.Memory;
         }
 
         LOG_D("TxId: " << txId << ", channels: " << requestChannels
-            << ", computeActors: " << msg.GetTasks().size() << ", memory: " << request.TotalMemory);
+            << ", computeActors: " << msg.GetTasks().size());
 
         TVector<ui64> allocatedTasks;
         allocatedTasks.reserve(msg.GetTasks().size());

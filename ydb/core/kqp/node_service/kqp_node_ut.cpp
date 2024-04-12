@@ -483,7 +483,7 @@ void KqpNode::NotEnoughMemory() {
         UNIT_ASSERT_VALUES_EQUAL(1, record.GetNotStartedTasks().size());
         auto& task = record.GetNotStartedTasks()[0];
         UNIT_ASSERT_EQUAL(NKikimrKqp::TEvStartKqpTasksResponse::QUERY_MEMORY_LIMIT_EXCEEDED, task.GetReason());
-        UNIT_ASSERT_STRINGS_EQUAL("Required: 201000, limit: 30000", task.GetMessage());
+        UNIT_ASSERT_STRING_CONTAINS(task.GetMessage(), "requested 201000 bytes, but limit is 30000 bytes");
     }
 
     AssertResourceBrokerSensors(0, 0, 0, 0, 0);
@@ -576,7 +576,7 @@ void KqpNode::NotEnoughComputeActors() {
 
 void KqpNode::ResourceBrokerNotEnoughResources() {
     auto cfg = MakeKqpResourceManagerConfig();
-    cfg.MutableResourceManager()->SetChannelBufferSize(6'000);
+    cfg.MutableResourceManager()->SetChannelBufferSize(7'000);
     cfg.MutableResourceManager()->SetQueryMemoryLimit(49'000);
     CreateKqpNode(cfg);
 
@@ -587,7 +587,7 @@ void KqpNode::ResourceBrokerNotEnoughResources() {
     {
         auto answer = Runtime->GrabEdgeEvent<TEvKqpNode::TEvStartKqpTasksResponse>(sender1);
         Y_UNUSED(answer);
-        AssertResourceBrokerSensors(0, 2 * (6000 * 2 + 1000 / 2), 0, 0, 2);
+        AssertResourceBrokerSensors(0, 2 * (7000 * 2 + 1000 / 2), 0, 0, 2);
     }
 
     SendStartTasksRequest(sender2, 2, {3, 4});
@@ -603,7 +603,7 @@ void KqpNode::ResourceBrokerNotEnoughResources() {
         }
     }
 
-    AssertResourceBrokerSensors(0, 2 * (6000 * 2 + 1000 / 2), 0, 1, 2);
+    AssertResourceBrokerSensors(0, 2 * (7000 * 2 + 1000 / 2), 0, 1, 2);
 
     {
         NKikimr::TActorSystemStub stub;
