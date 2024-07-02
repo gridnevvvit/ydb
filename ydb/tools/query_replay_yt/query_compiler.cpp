@@ -222,6 +222,7 @@ public:
         , FunctionRegistry(functionRegistry)
     {
         Config->EnableKqpScanQueryStreamLookup = true;
+    	Config->PredicateExtract20 = true;
     }
 
     void Bootstrap() {
