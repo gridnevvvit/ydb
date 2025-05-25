@@ -276,10 +276,9 @@ public:
 
     TReadResultStats ReplyResult(NKikimr::NMiniKQL::TUnboxedValueBatch& batch, i64 freeSpace) final {
         TReadResultStats resultStats;
-        bool sizeLimitExceeded = false;
         batch.clear();
 
-        while (!ReadResults.empty() && !sizeLimitExceeded) {
+        while (!ReadResults.empty() && !resultStats.SizeLimitExceeded) {
             auto& result = ReadResults.front();
             for (; result.UnprocessedResultRow < result.ReadResult->Get()->GetRowsCount(); ++result.UnprocessedResultRow) {
                 const auto& resultRow = result.ReadResult->Get()->GetCells(result.UnprocessedResultRow);
@@ -305,10 +304,10 @@ public:
                 }
 
                 if (rowSize + (i64)resultStats.ResultBytesCount > freeSpace) {
-                    sizeLimitExceeded = true;
+                    resultStats.SizeLimitExceeded = true;
                 }
 
-                if (resultStats.ResultRowsCount && sizeLimitExceeded) {
+                if (resultStats.ResultRowsCount && resultStats.SizeLimitExceeded) {
                     row.DeleteUnreferenced();
                     break;
                 }
@@ -718,7 +717,6 @@ public:
 
     TReadResultStats ReplyResult(NKikimr::NMiniKQL::TUnboxedValueBatch& batch, i64 freeSpace) final {
         TReadResultStats resultStats;
-        bool sizeLimitExceeded = false;
         batch.clear();
 
         // we should process left rows that haven't matches on the right
@@ -747,7 +745,7 @@ public:
             return ResultRowsBySeqNo.find(CurrentResultSeqNo);
         };
 
-        while (!sizeLimitExceeded) {
+        while (!resultStats.SizeLimitExceeded) {
             auto resultIt = getNextResult();
             if (resultIt == ResultRowsBySeqNo.end()) {
                 break;
@@ -758,7 +756,7 @@ public:
                 auto& row = result.Rows[result.FirstUnprocessedRow];
 
                 if (resultStats.ResultRowsCount && resultStats.ResultBytesCount + row.Stats.ResultBytesCount > (ui64)freeSpace) {
-                    sizeLimitExceeded = true;
+                    resultStats.SizeLimitExceeded = true;
                     break;
                 }
 
@@ -868,7 +866,10 @@ private:
         return range.From.subspan(0, LookupKeyColumns.size());
     }
 
-    NMiniKQL::TStructType* GetLeftRowType() const {
+    NMiniKQL::TStructType* GetLeftRowType() {
+	if (LeftRowType) {
+		return LeftRowType;
+	}
         YQL_ENSURE(InputDesc.HasTransform());
 
         auto outputTypeNode = NMiniKQL::DeserializeNode(TStringBuf{InputDesc.GetTransform().GetOutputType()}, TypeEnv);
@@ -883,7 +884,8 @@ private:
         const auto outputLeftRowType = outputTupleType->GetElementType(0);
         YQL_ENSURE(outputLeftRowType->GetKind() == NMiniKQL::TType::EKind::Struct);
 
-        return AS_TYPE(NMiniKQL::TStructType, outputLeftRowType);
+        LeftRowType = AS_TYPE(NMiniKQL::TStructType, outputLeftRowType);
+	return LeftRowType;
     }
 
     NUdf::TUnboxedValue TryBuildResultRow(TLeftRowInfo& leftRowInfo, TConstArrayRef<TCell> rightRow,
@@ -950,6 +952,7 @@ private:
     std::unordered_map<ui64, TResultBatch> ResultRowsBySeqNo;
     ui64 InputRowSeqNo = 0;
     ui64 CurrentResultSeqNo = 0;
+    NMiniKQL::TStructType* LeftRowType = nullptr;
 };
 
 std::unique_ptr<TKqpStreamLookupWorker> CreateStreamLookupWorker(NKikimrKqp::TKqpStreamLookupSettings&& settings,
