@@ -1160,6 +1160,8 @@ protected:
 
         auto& stage = stageInfo.Meta.GetStage(stageInfo.Id);
 
+        bool singlePartitionedStage = stage.GetIsSinglePartition();
+
         YQL_ENSURE(stage.GetSources(0).HasReadRangesSource());
         YQL_ENSURE(stage.GetSources(0).GetInputIndex() == 0 && stage.SourcesSize() == 1);
         for (auto& input : stage.inputs()) {
@@ -1389,7 +1391,7 @@ protected:
         bool isSequentialInFlight = source.GetSequentialInFlightShards() > 0 && partitions.size() > source.GetSequentialInFlightShards();
         bool isParallelPointRead = EnableParallelPointReadConsolidation && !isSequentialInFlight && !source.GetSorted() && IsParallelPointReadPossible(partitions);
 
-        if (partitions.size() > 0 && (isSequentialInFlight || isParallelPointRead)) {
+        if (partitions.size() > 0 && (isSequentialInFlight || isParallelPointRead || singlePartitionedStage)) {
             auto [startShard, shardInfo] = MakeVirtualTablePartition(source, stageInfo, HolderFactory(), TypeEnv());
 
             YQL_ENSURE(Stats);
@@ -1404,11 +1406,11 @@ protected:
             }
 
             if (shardInfo.KeyReadRanges) {
-                const TMaybe<ui64> nodeId = (isParallelPointRead) ? TMaybe<ui64>{SelfId().NodeId()} : Nothing();
+                const TMaybe<ui64> nodeId = (isParallelPointRead || singlePartitionedStage) ? TMaybe<ui64>{SelfId().NodeId()} : Nothing();
                 addPartiton(startShard, nodeId, {}, shardInfo, inFlightShards);
                 fillRangesForTasks();
                 buildSinks();
-                return (isParallelPointRead) ? TMaybe<size_t>(partitions.size()) : Nothing();
+                return (isParallelPointRead || singlePartitionedStage) ? TMaybe<size_t>(partitions.size()) : Nothing();
             } else {
                 return 0;
             }
