@@ -525,6 +525,7 @@ public:
         ui64 rowSeqNo;
         bool firstRow = true;
         bool lastRow = true;
+        Cerr << "input row" << Endl;
         if (IsInputTriplet()) {
             auto value = inputRow.GetElement(2).Get<ui64>();
             auto cookie = TStreamLookupJoinRowCookie::Decode(value);
@@ -552,9 +553,11 @@ public:
         TOwnedCellVec cellVec(std::move(joinKeyCells));
         ResultRowsBySeqNo[rowSeqNo].AcceptLeftRow(std::move(row), rowSeqNo, firstRow, lastRow);
         if (!IsKeyAllowed(cellVec)) {
+            Cerr << "key not allowed to be looked up" << Endl;
             ResultRowsBySeqNo[rowSeqNo].AddJoinKey(joinKeyId);
             ResultRowsBySeqNo[rowSeqNo].OnJoinKeyFinished(HolderFactory, joinKeyId);
         } else {
+            Cerr << "key is okey to be allowed to be looked up" << Endl;
             auto [it, success] = PendingLeftRowsByKey.emplace(cellVec, TJoinKeyInfo(joinKeyId));
             if (success) {
                 UnprocessedRows.emplace_back(TUnprocessedLeftRow(cellVec));

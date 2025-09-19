@@ -329,6 +329,8 @@ TMaybeNode<TExprBase> BuildKqpStreamIndexLookupJoin(
                     rebuildColumns = true;
                 }
             }
+
+            Cerr << "okay... i'm here " << JoinSeq(',', lookupColumnsSet) << Endl;
             // we should expand list of read columns
             // narrow it immediately after filter
             if (rebuildColumns) {
@@ -776,6 +778,8 @@ TMaybeNode<TExprBase> KqpJoinToIndexLookupImpl(const TDqJoin& join, TExprContext
                     .Build()
                 .Build()
             .Done();
+
+        Cerr << KqpExprToPrettyString(leftInput, ctx) << Endl;
 
         return BuildKqpStreamIndexLookupJoin(join, leftInput, indexName, *prefixLookup, *rightReadMatch, rightTableUnmatchedJoinKeys, ctx);
     }
