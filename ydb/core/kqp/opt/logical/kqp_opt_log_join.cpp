@@ -556,6 +556,8 @@ TMaybeNode<TExprBase> KqpJoinToIndexLookupImpl(const TDqJoin& join, TExprContext
     TSet<TString> deduplicateLeftColumns;
     TVector<TExprBase> prefixFilters;
 
+    TVector<TExprBase> stubLookupMembers;
+
     for (auto& rightColumnName : rightTableDesc.Metadata->KeyColumnNames) {
         TExprNode::TPtr member;
 
@@ -646,6 +648,18 @@ TMaybeNode<TExprBase> KqpJoinToIndexLookupImpl(const TDqJoin& join, TExprContext
             Build<TExprList>(ctx, join.Pos())
                 .Add<TCoAtom>().Build(rightColumnName)
                 .Add(member)
+                .Done());
+
+        auto rightType = rightTableDesc.GetColumnType(rightColumnName);
+        YQL_ENSURE(rightType);
+        if (rightType->GetKind() == ETypeAnnotationKind::Data) {
+            rightType = ctx.MakeType<TOptionalExprType>(rightType);
+        }
+
+        stubLookupMembers.emplace_back(
+            Build<TExprList>(ctx, join.Pos())
+                .Add<TCoAtom>().Build(rightColumnName)
+                .Add<TCoNothing>().OptionalType(ExpandType(join.Pos(), *rightType, ctx)).Build()
                 .Done());
 
         if (leftColumn) {
@@ -763,21 +777,64 @@ TMaybeNode<TExprBase> KqpJoinToIndexLookupImpl(const TDqJoin& join, TExprContext
             .Add(leftRowArg)
             .Done();
 
-        auto leftInput = Build<TCoFlatMap>(ctx, join.Pos())
-            .Input(leftData)
-            .Lambda()
-                .Args({leftRowArg})
-                .Body<TCoMap>()
-                    .Input(rightPrefixExpr.Cast())
-                    .Lambda()
-                        .Args({prefixRowArg})
-                        .Body(leftRowTuple)
+        TMaybeNode<TExprBase> leftInput;
+        if (fixedPrefix > 0) {
+            /*
+            When `fixedPrefix > 0`, it indicates a point predicate on the right table (e.g., `SELECT ... FROM b WHERE PK = $param`).
+
+            However, the predicate extraction logic cannot guarantee that the `rightPrefixExpr` will produce a
+            non-empty list of point or range conditions. It might happen if the predicate cointains NULLs (e.g. PK = NULL is always false)
+
+            This guarantee is critical for a LEFT JOIN. The join's correctness depends on knowing
+            if there is at least one matching row on the right side to determine if the result should be extended or filled with NULLs.
+            Therefore, we must explicitly check if the generated list from `rightPrefixExpr` is empty or not.
+            */
+            leftInput = Build<TCoFlatMap>(ctx, join.Pos())
+                .Input(leftData)
+                .Lambda()
+                    .Args({leftRowArg})
+                    .Body<TCoIf>()
+                        .Predicate<TCoCmpEqual>()
+                            .Left<TCoLength>().List(rightPrefixExpr.Cast()).Build()
+                            .Right<TCoUint64>().Literal().Value("0").Build().Build()
+                            .Build()
+                        .ThenValue<TCoAsList>()
+                            .Add<TExprList>()
+                                .Add<TCoJust>()
+                                    .Input<TCoAsStruct>()
+                                        .Add(stubLookupMembers)
+                                        .Build()
+                                    .Build()
+                                .Add(leftRowArg)
+                                .Build()
+                            .Build()
+                        .ElseValue<TCoMap>()
+                            .Input(rightPrefixExpr.Cast())
+                            .Lambda()
+                                .Args({prefixRowArg})
+                                .Body(leftRowTuple)
+                                .Build()
+                            .Build()
                         .Build()
                     .Build()
-                .Build()
-            .Done();
+                .Done();
+        } else {
+            leftInput = Build<TCoFlatMap>(ctx, join.Pos())
+                .Input(leftData)
+                .Lambda()
+                    .Args({leftRowArg})
+                    .Body<TCoMap>()
+                        .Input(rightPrefixExpr.Cast())
+                        .Lambda()
+                            .Args({prefixRowArg})
+                            .Body(leftRowTuple)
+                            .Build()
+                        .Build()
+                    .Build()
+                .Done();
+        }
 
-        return BuildKqpStreamIndexLookupJoin(join, leftInput, indexName, *prefixLookup, *rightReadMatch, rightTableUnmatchedJoinKeys, ctx);
+        return BuildKqpStreamIndexLookupJoin(join, leftInput.Cast(), indexName, *prefixLookup, *rightReadMatch, rightTableUnmatchedJoinKeys, ctx);
     }
 
     auto leftDataDeduplicated = DeduplicateByMembers(leftData, filter, deduplicateLeftColumns, ctx, join.Pos());
