@@ -153,7 +153,6 @@ TKikimrConfiguration::TKikimrConfiguration() {
     /* Runtime */
     REGISTER_SETTING(*this, ScanQuery);
 
-    BlockChannelsMode = NKikimrConfig::TTableServiceConfig_EBlockChannelsMode_BLOCK_CHANNELS_SCALAR;
 }
 
 bool TKikimrSettings::HasAllowKqpUnsafeCommit() const {

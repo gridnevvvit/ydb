@@ -193,31 +193,19 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
         CopyFrom(serviceConfig);
 
         EnablePgConstsToParams = serviceConfig.GetEnablePgConstsToParams() && serviceConfig.GetEnableAstCache();
-        EnableOlapSink = serviceConfig.GetEnableOlapSink();
-        EnableOltpSink = serviceConfig.GetEnableOltpSink();
-        EnableHtapTx = serviceConfig.GetEnableHtapTx();
-        EnableStreamWrite = serviceConfig.GetEnableStreamWrite();
-        EnableBatchUpdates = serviceConfig.GetEnableBatchUpdates();
-        BlockChannelsMode = serviceConfig.GetBlockChannelsMode();
-        IdxLookupJoinsPrefixPointLimit = serviceConfig.GetIdxLookupJoinPointsLimit();
         DefaultCostBasedOptimizationLevel = serviceConfig.GetDefaultCostBasedOptimizationLevel();
         DefaultEnableShuffleElimination = serviceConfig.GetDefaultEnableShuffleElimination();
         DefaultDqChannelVersion = serviceConfig.GetDqChannelVersion();
         SetDefaultEnabledSpillingNodes(serviceConfig.GetEnableSpillingNodes());
         EnableSpilling = serviceConfig.GetEnableQueryServiceSpilling();
-        EnableSnapshotIsolationRW = serviceConfig.GetEnableSnapshotIsolationRW();
         AllowMultiBroadcasts = serviceConfig.GetAllowMultiBroadcasts();
         EnableNewRBO = serviceConfig.GetEnableNewRBO();
-        EnableSpillingInHashJoinShuffleConnections = serviceConfig.GetEnableSpillingInHashJoinShuffleConnections();
-        EnableOlapScalarApply = serviceConfig.GetEnableOlapScalarApply();
         EnableOlapSubstringPushdown = serviceConfig.GetEnableOlapSubstringPushdown();
         EnableIndexStreamWrite = serviceConfig.GetEnableIndexStreamWrite();
         EnableOlapPushdownProjections = serviceConfig.GetEnableOlapPushdownProjections();
         LangVer = serviceConfig.GetDefaultLangVer();
         EnableParallelUnionAllConnectionsForExtend = serviceConfig.GetEnableParallelUnionAllConnectionsForExtend();
         EnableTempTablesForUser = serviceConfig.GetEnableTempTablesForUser();
-        EnableSimpleProgramsSinglePartitionOptimization = serviceConfig.GetEnableSimpleProgramsSinglePartitionOptimization();
-        EnableSimpleProgramsSinglePartitionOptimizationBroadPrograms = serviceConfig.GetEnableSimpleProgramsSinglePartitionOptimizationBroadPrograms();
 
         EnableOlapPushdownAggregate = serviceConfig.GetEnableOlapPushdownAggregate();
         EnableOrderOptimizaionFSM = serviceConfig.GetEnableOrderOptimizaionFSM();
@@ -281,26 +269,16 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
     NSQLTranslation::EBindingsMode BindingsMode = NSQLTranslation::EBindingsMode::ENABLED;
     bool EnableAstCache = false;
     bool EnablePgConstsToParams = false;
-    ui64 IdxLookupJoinsPrefixPointLimit = 1;
-    bool EnableOlapSink = false;
-    bool EnableOltpSink = false;
-    bool EnableHtapTx = false;
-    bool EnableStreamWrite = false;
-    bool EnableBatchUpdates = false;
-    NKikimrConfig::TTableServiceConfig_EBlockChannelsMode BlockChannelsMode;
     bool EnableSpilling = true;
     ui32 DefaultCostBasedOptimizationLevel = 4;
     ui64 DefaultEnableSpillingNodes = 0;
     bool EnableAntlr4Parser = false;
-    bool EnableSnapshotIsolationRW = false;
     bool AllowMultiBroadcasts = false;
     bool DefaultEnableShuffleElimination = false;
     bool DefaultEnableShuffleEliminationForAggregation = false;
     bool FilterPushdownOverJoinOptionalSide = false;
     THashSet<TString> YqlCoreOptimizerFlags;
     bool EnableNewRBO = false;
-    bool EnableSpillingInHashJoinShuffleConnections = false;
-    bool EnableOlapScalarApply = false;
     bool EnableOlapSubstringPushdown = false;
     bool EnableIndexStreamWrite = false;
     bool EnableOlapPushdownProjections = false;
@@ -312,8 +290,6 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
 
     bool EnableTopSortSelectIndex = true;
     bool EnablePointPredicateSortAutoSelectIndex = true;
-    bool EnableSimpleProgramsSinglePartitionOptimization = true;
-    bool EnableSimpleProgramsSinglePartitionOptimizationBroadPrograms = true;
     bool EnableDqHashCombineByDefault = true;
     bool EnableDqHashAggregateByDefault = false;
     bool EnableWatermarks = false;
