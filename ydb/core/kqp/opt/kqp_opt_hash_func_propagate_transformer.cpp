@@ -70,7 +70,7 @@ TMaybeNode<TKqpPhysicalTx> PropogateHashFuncToHashShuffles(
             }
         );
 
-        bool enableShuffleElimination = config->OptShuffleElimination.Get().GetOrElse(config->DefaultEnableShuffleElimination);
+        bool enableShuffleElimination = config->OptShuffleElimination.Get().GetOrElse(config->GetDefaultEnableShuffleElimination());
         auto stageHashType = config->HashShuffleFuncType.Get().GetOrElse(config->DefaultHashShuffleFuncType);
         if (isRead && enableShuffleElimination) {
             stageHashType =  config->ColumnShardHashShuffleFuncType.Get().GetOrElse(config->DefaultColumnShardHashShuffleFuncType);
@@ -176,7 +176,7 @@ public:
                 .AddPostTypeAnnotation(/* forSubgraph */ true)
                 .Add(CreateKqpTxHashFuncPropagateTransformer(config), "Peephole")
             .Build(false);
-        ShuffleEliminationEnabled = config->OptShuffleElimination.Get().GetOrElse(config->DefaultEnableShuffleElimination);
+        ShuffleEliminationEnabled = config->OptShuffleElimination.Get().GetOrElse(config->GetDefaultEnableShuffleElimination());
     }
 
     TStatus DoTransform(TExprNode::TPtr input, TExprNode::TPtr& output, TExprContext& ctx) final {
