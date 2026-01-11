@@ -192,17 +192,7 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
 
         CopyFrom(serviceConfig);
 
-        EnableKqpScanQuerySourceRead = serviceConfig.GetEnableKqpScanQuerySourceRead();
-        EnableKqpScanQueryStreamIdxLookupJoin = serviceConfig.GetEnableKqpScanQueryStreamIdxLookupJoin();
-        EnableKqpDataQueryStreamIdxLookupJoin = serviceConfig.GetEnableKqpDataQueryStreamIdxLookupJoin();
-
         EnablePgConstsToParams = serviceConfig.GetEnablePgConstsToParams() && serviceConfig.GetEnableAstCache();
-        ExtractPredicateRangesLimit = serviceConfig.GetExtractPredicateRangesLimit();
-        EnablePerStatementQueryExecution = serviceConfig.GetEnablePerStatementQueryExecution();
-        EnableDiscardSelect = serviceConfig.GetEnableDiscardSelect();
-        EnableCreateTableAs = serviceConfig.GetEnableCreateTableAs();
-        EnableDataShardCreateTableAs = serviceConfig.GetEnableDataShardCreateTableAs();
-        AllowOlapDataQuery = serviceConfig.GetAllowOlapDataQuery();
         EnableOlapSink = serviceConfig.GetEnableOlapSink();
         EnableOltpSink = serviceConfig.GetEnableOltpSink();
         EnableHtapTx = serviceConfig.GetEnableHtapTx();
@@ -213,8 +203,6 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
         DefaultCostBasedOptimizationLevel = serviceConfig.GetDefaultCostBasedOptimizationLevel();
         DefaultEnableShuffleElimination = serviceConfig.GetDefaultEnableShuffleElimination();
         DefaultDqChannelVersion = serviceConfig.GetDqChannelVersion();
-        EnableConstantFolding = serviceConfig.GetEnableConstantFolding();
-        EnableFoldUdfs = serviceConfig.GetEnableFoldUdfs();
         SetDefaultEnabledSpillingNodes(serviceConfig.GetEnableSpillingNodes());
         EnableSpilling = serviceConfig.GetEnableQueryServiceSpilling();
         EnableSnapshotIsolationRW = serviceConfig.GetEnableSnapshotIsolationRW();
@@ -290,18 +278,10 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
 
     NKikimrConfig::TFeatureFlags FeatureFlags;
 
-    bool EnableKqpScanQuerySourceRead = false;
-    bool EnableKqpScanQueryStreamIdxLookupJoin = false;
-    bool EnableKqpDataQueryStreamIdxLookupJoin = false;
     NSQLTranslation::EBindingsMode BindingsMode = NSQLTranslation::EBindingsMode::ENABLED;
     bool EnableAstCache = false;
     bool EnablePgConstsToParams = false;
-    ui64 ExtractPredicateRangesLimit = 0;
-    bool EnablePerStatementQueryExecution = false;
-    bool EnableCreateTableAs = false;
-    bool EnableDataShardCreateTableAs = false;
     ui64 IdxLookupJoinsPrefixPointLimit = 1;
-    bool AllowOlapDataQuery = false;
     bool EnableOlapSink = false;
     bool EnableOltpSink = false;
     bool EnableHtapTx = false;
@@ -310,8 +290,6 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
     NKikimrConfig::TTableServiceConfig_EBlockChannelsMode BlockChannelsMode;
     bool EnableSpilling = true;
     ui32 DefaultCostBasedOptimizationLevel = 4;
-    bool EnableConstantFolding = true;
-    bool EnableFoldUdfs = true;
     ui64 DefaultEnableSpillingNodes = 0;
     bool EnableAntlr4Parser = false;
     bool EnableSnapshotIsolationRW = false;
@@ -340,7 +318,6 @@ struct TKikimrConfiguration : public TKikimrSettings, public NCommon::TSettingDi
     bool EnableDqHashAggregateByDefault = false;
     bool EnableWatermarks = false;
     ui32 DefaultDqChannelVersion = 1u;
-    bool EnableDiscardSelect = false;
 
     bool Antlr4ParserIsAmbiguityError = false;
 
